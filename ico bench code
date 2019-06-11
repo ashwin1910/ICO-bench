@@ -1,0 +1,296 @@
+from selenium import webdriver
+from selenium.webdriver.common.keys import Keys
+from bs4 import BeautifulSoup
+import re
+import pandas as pd
+import os
+import time
+from selenium.webdriver.support.ui import Select
+
+working_directory='C:/ico bench/collection'
+os.chdir(working_directory)
+os.makedirs('milestones')
+no_of_pages=1 #mention the number of pages
+common_href='https://icobench.com'
+pageturn_href='https://icobench.com'
+crypto_name=[]
+crypto_description_long=[]
+crypto_rating_benchy=[]
+crypto_rating_team=[]
+crypto_rating_vision=[]
+crypto_rating_product=[]
+financial_data_token=[]
+financial_data_Type=[]
+financial_data_PreICOPrice=[]
+financial_data_Price=[]
+financial_data_Bounty=[]
+financial_data_MVP=[]
+financial_data_Pltform=[]
+financial_data_Accepting=[]
+financial_data_Minimum_investment=[]
+financial_data_Softcap=[]
+financial_data_Hardcap=[]
+financial_data_CountryWhitelist=[]
+financial_data_whitelistorKYC=[]
+crypto_description_short=[]
+crypto_info_name=[]
+crypto_info_platform=[]
+crypto_info_type=[]
+crypto_info_preICOprice=[]
+crypto_info_priceInICO=[]
+crypto_info_tokenForSale=[]
+crypto_info_MinInvestments=[]
+crypto_info_Accepting=[]
+crypto_info_DistributedInICO=[]
+crypto_info_SoftCap=[]
+crypto_info_HardCap=[]
+crypto_info_Raised=[]
+whitepaper_status=[]
+
+Coins=pd.DataFrame()
+    
+driver = webdriver.Chrome('C:/chromedriver.exe')
+driver_inner = webdriver.Chrome('C:/chromedriver.exe')
+driver.get('https://icobench.com/icos')
+#driver = webdriver.Chrome('C:/unzipped/chromedriver_win32/chromedriver.exe')
+main_table=pd.DataFrame()
+for pages in range(no_of_pages):
+    list_of_href=[]
+    page_soup=BeautifulSoup(driver.page_source,'lxml') #converting webpage into soup object
+    find_div_section = page_soup.findAll("div",{'class':'ico_list'}) #finding list of div section conatining specified table
+    div_section = find_div_section[0]
+    table=div_section.table #getting table from div element
+    page_table=pd.read_html(str(table),header=0)[0]
+    main_table=pd.concat([main_table,page_table],ignore_index=True)
+    href_iteration = div_section.findAll("a",{'class':'name notranslate'})
+    list_of_href=[]
+    for items in href_iteration:
+        list_of_href.append(items.get('href'))
+    next_button=page_soup.findAll("a",{'class':'next'})[0].get('href')
+    driver.get(pageturn_href+next_button)
+    for href in list_of_href:
+        try:
+            driver_inner.get(common_href+href+'/milestones')
+            milestones=pd.DataFrame()
+            page_soup=BeautifulSoup(driver_inner.page_source,'lxml') #converting webpage into soup object
+            find_div_section = page_soup.findAll("div",{'class':'tab_content'}) #finding list of div section conatining specified table
+            div_section = find_div_section[0]
+            conditions_iteration = div_section.findAll("div",{'class':'condition'})
+            event_iteration = div_section.findAll("p",{'class':''})
+            milestones = pd.DataFrame()
+            conditions=[]
+            event=[]
+            for iterations in conditions_iteration:
+                conditions.append(iterations.text)
+            for iterations in event_iteration:
+                event.append(iterations.text)
+            milestones['Timeline']=pd.Series(conditions)
+            milestones['Event']=pd.Series(event)
+            
+            os.chdir(working_directory+'/milestones')
+            milestones.to_csv('{}_milestones.csv'.format(href.split('/')[2]))
+            os.chdir(working_directory)
+            time.sleep(1)
+        except:
+            time.sleep(1)
+ 
+        url = common_href+href
+        driver_inner.get(url)
+        page_soup=BeautifulSoup(driver_inner.page_source,'lxml') #converting webpage into soup object
+        try:
+            crypto_name.append(page_soup.findAll("div",{'class':'name'})[0].h1.text)
+        except:
+            crypto_name.append('')  
+        try:
+            crypto_description_long.append(page_soup.findAll("div",{'class':'ico_information'})[0].p.text)
+        except:
+            crypto_description_long.append('')
+        try:
+            crypto_rating_benchy.append(page_soup.findAll("div",{'class':'wrapper'})[0].text.split('\n')[2].split(' ')[-1])
+        except:
+            crypto_rating_benchy.append('')
+        try:
+            crypto_rating_div=page_soup.findAll("div",{'class':'wrapper'})[1]
+        except:
+            crypto_rating_div=''
+        
+        
+        try:
+            crypto_rating_team.append(crypto_rating_div.findAll("div",{'class':'col_4 col_3'})[0].text.split('\n')[1].split(' ')[-1])
+        except:
+            crypto_rating_team.append('')
+        
+        try:
+            crypto_rating_vision.append(crypto_rating_div.findAll("div",{'class':'col_4 col_3'})[1].text.split('\n')[1].split(' ')[-1])
+        except:
+            crypto_rating_vision.append('')
+        
+        try:
+            crypto_rating_product.append(crypto_rating_div.findAll("div",{'class':'col_4 col_3'})[2].text.split('\n')[1].split(' ')[-1])
+        except:
+            crypto_rating_product.append('')
+        
+        try:
+            financial_data_div=page_soup.findAll("div",{'class':'financial_data'})[0]
+        except:
+            financial_data_div=''
+        try:
+            financial_data_token.append(financial_data_div.findAll('div',{'class':'data_row'})[0].findAll('div',{'class':'col_2'})[1].text)
+        except:
+            financial_data_token.append('')     
+        try:
+            financial_data_Type.append(financial_data_div.findAll('div',{'class':'data_row'})[1].findAll('div',{'class':'col_2'})[1].text)
+        except:
+            financial_data_Type.append('')
+        
+        try:
+            financial_data_PreICOPrice.append(financial_data_div.findAll('div',{'class':'data_row'})[2].findAll('div',{'class':'col_2'})[1].text)
+        except:
+            financial_data_PreICOPrice.append('')
+        try:
+            financial_data_Price.append(financial_data_div.findAll('div',{'class':'data_row'})[3].findAll('div',{'class':'col_2'})[1].text)
+        except:
+            financial_data_Price.append('')
+        try:
+            financial_data_Bounty.append(financial_data_div.findAll('div',{'class':'data_row'})[4].findAll('div',{'class':'col_2'})[1].text)
+        except:
+            financial_data_Bounty.append('')
+        try:
+            financial_data_MVP.append(financial_data_div.findAll('div',{'class':'data_row'})[5].findAll('div',{'class':'col_2'})[1].text)
+        except:
+            financial_data_MVP.append('')
+        try:
+            financial_data_Pltform.append(financial_data_div.findAll('div',{'class':'data_row'})[6].findAll('div',{'class':'col_2'})[1].text)
+        except:
+            financial_data_Pltform.append('')
+        try:
+            financial_data_Accepting.append(financial_data_div.findAll('div',{'class':'data_row'})[7].findAll('div',{'class':'col_2'})[1].text)
+        except:
+            financial_data_Accepting.append('')
+        try:
+            financial_data_Minimum_investment.append(financial_data_div.findAll('div',{'class':'data_row'})[8].findAll('div',{'class':'col_2'})[1].text)
+        except:
+            financial_data_Minimum_investment.append('')
+        try:
+            financial_data_Softcap.append(financial_data_div.findAll('div',{'class':'data_row'})[9].findAll('div',{'class':'col_2'})[1].text)
+        except:
+            financial_data_Softcap.append('')
+        
+        try:
+            financial_data_Hardcap.append(financial_data_div.findAll('div',{'class':'data_row'})[10].findAll('div',{'class':'col_2'})[1].text)
+        except:
+            financial_data_Hardcap.append('')
+        try:
+            financial_data_CountryWhitelist.append(financial_data_div.findAll('div',{'class':'data_row'})[11].findAll('div',{'class':'col_2'})[1].text)
+        except:
+            financial_data_CountryWhitelist.append('')
+        try:
+            financial_data_whitelistorKYC.append(financial_data_div.findAll('div',{'class':'data_row'})[12].findAll('div',{'class':'col_2'})[1].text)
+        except:
+            financial_data_whitelistorKYC.append('')
+        try:
+            crypto_description_short.append(page_soup.findAll("div",{'class':'tab_content'})[0].text)
+        except:
+            crypto_description_short.append('')
+        
+#       opening financial page
+        financial_url=common_href+href+'/financial'
+        driver_inner.get(financial_url)
+        page_soup=BeautifulSoup(driver_inner.page_source,'lxml')
+        try:
+            crypto_info_div=page_soup.findAll("div",{'class':'tab_content'})[0]
+        except:
+            crypto_info_div=''
+        
+#         left box
+        try:
+            crypto_info_name.append(crypto_info_div.findAll("div",{'class':'box_left'})[0].findAll("div",{'class':'row'})[0].findAll("div",{'class':'value notranslate'})[0].text)
+        except:
+            crypto_info_name.append('')
+        try:
+            crypto_info_platform.append(crypto_info_div.findAll("div",{'class':'box_left'})[0].findAll("div",{'class':'row'})[1].findAll("div",{'class':'value notranslate'})[0].text)
+        except:
+            crypto_info_platform.append('')
+        try:
+            crypto_info_type.append(crypto_info_div.findAll("div",{'class':'box_left'})[0].findAll("div",{'class':'row'})[2].findAll("div",{'class':'value'})[0].text)
+        except:
+            crypto_info_type.append('')
+        try:
+            crypto_info_preICOprice.append(crypto_info_div.findAll("div",{'class':'box_left'})[0].findAll("div",{'class':'row'})[3].findAll("div",{'class':'value'})[0].text)
+        except:
+            crypto_info_preICOprice.append('')
+        try:
+            crypto_info_priceInICO.append(crypto_info_div.findAll("div",{'class':'box_left'})[0].findAll("div",{'class':'row'})[4].findAll("div",{'class':'value'})[0].text)
+        except:
+            crypto_info_priceInICO.append('')
+        try:
+            crypto_info_tokenForSale.append(crypto_info_div.findAll("div",{'class':'box_left'})[0].findAll("div",{'class':'row'})[5].findAll("div",{'class':'value'})[0].text)
+        except:
+            crypto_info_tokenForSale.append('')
+#       right box
+        try:
+            crypto_info_MinInvestments.append(crypto_info_div.findAll("div",{'class':'box_right'})[0].findAll("div",{'class':'row'})[0].findAll("div",{'class':'value'})[0].text)
+        except:
+            crypto_info_MinInvestments.append('')
+        try:
+            crypto_info_Accepting.append(crypto_info_div.findAll("div",{'class':'box_right'})[0].findAll("div",{'class':'row'})[1].findAll("div",{'class':'value'})[0].text)
+        except:
+            crypto_info_Accepting.append('')
+        try:
+            crypto_info_DistributedInICO.append(crypto_info_div.findAll("div",{'class':'box_right'})[0].findAll("div",{'class':'row'})[2].findAll("div",{'class':'value'})[0].text)
+        except:
+            crypto_info_DistributedInICO.append('')
+        try:
+            crypto_info_SoftCap.append(crypto_info_div.findAll("div",{'class':'box_right'})[0].findAll("div",{'class':'row'})[3].findAll("div",{'class':'value'})[0].text)
+        except:
+            crypto_info_SoftCap.append('')
+        try:
+            crypto_info_HardCap.append(crypto_info_div.findAll("div",{'class':'box_right'})[0].findAll("div",{'class':'row'})[4].findAll("div",{'class':'value'})[0].text)
+        except:
+            crypto_info_HardCap.append('')
+        try:
+            crypto_info_Raised.append(crypto_info_div.findAll("div",{'class':'box_right'})[0].findAll("div",{'class':'row'})[5].findAll("div",{'class':'value'})[0].text)
+        except:
+            crypto_info_Raised.append('')
+        
+        try:
+            whitepaper_div=page_soup.findAll("div",{'class':'tabs'})[0]
+            whitepaper_status.append(whitepaper_div.findAll("a",{'class':' whitepaper notranslate'})[0].text)
+        except:
+            whitepaper_status.append('')
+        continue
+
+Coins['crypto_name']=pd.Series(crypto_name)
+Coins['crypto_description_long']=pd.Series(crypto_description_long)
+Coins['crypto_rating_benchy']=pd.Series(crypto_rating_benchy)
+Coins['crypto_rating_team']=pd.Series(crypto_rating_team)
+Coins['crypto_rating_vision']=pd.Series(crypto_rating_vision)
+Coins['crypto_rating_product']=pd.Series(crypto_rating_product)
+Coins['financial_data_token']=pd.Series(financial_data_token)
+Coins['financial_data_Type']=pd.Series(financial_data_Type)
+Coins['financial_data_PreICOPrice']=pd.Series(financial_data_PreICOPrice)
+Coins['financial_data_Price']=pd.Series(financial_data_Price)
+Coins['financial_data_Bounty']=pd.Series(financial_data_Bounty)
+Coins['financial_data_MVP']=pd.Series(financial_data_MVP)
+Coins['financial_data_Pltform']=pd.Series(financial_data_Pltform)
+Coins['financial_data_Accepting']=pd.Series(financial_data_Accepting)
+Coins['financial_data_Minimum_investment']=pd.Series(financial_data_Minimum_investment)
+Coins['financial_data_Softcap']=pd.Series(financial_data_Softcap)
+Coins['financial_data_Hardcap']=pd.Series(financial_data_Hardcap)
+Coins['financial_data_CountryWhitelist']=pd.Series(financial_data_CountryWhitelist)
+Coins['financial_data_whitelistorKYC']=pd.Series(financial_data_whitelistorKYC)
+Coins['crypto_description_short']=pd.Series(crypto_description_short)
+Coins['crypto_info_name']=pd.Series(crypto_info_name)
+Coins['crypto_info_platform']=pd.Series(crypto_info_platform)
+Coins['crypto_info_type']=pd.Series(crypto_info_type)
+Coins['crypto_info_preICOprice']=pd.Series(crypto_info_preICOprice)
+Coins['crypto_info_priceInICO']=pd.Series(crypto_info_priceInICO)
+Coins['crypto_info_tokenForSale']=pd.Series(crypto_info_tokenForSale)
+Coins['crypto_info_MinInvestments']=pd.Series(crypto_info_MinInvestments)
+Coins['crypto_info_Accepting']=pd.Series(crypto_info_Accepting)
+Coins['crypto_info_DistributedInICO']=pd.Series(crypto_info_DistributedInICO)
+Coins['crypto_info_SoftCap']=pd.Series(crypto_info_SoftCap)
+Coins['crypto_info_HardCap']=pd.Series(crypto_info_HardCap)
+Coins['crypto_info_Raised']=pd.Series(crypto_info_Raised)
+Coins['whitepaper_status']=pd.Series(whitepaper_status)
+Coins.to_csv('Coin.csv') 
